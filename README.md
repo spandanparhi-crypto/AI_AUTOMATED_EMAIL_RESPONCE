@@ -4,9 +4,9 @@ An intelligent web-based application that simulates an **Automated Email Respons
 
 ## 🌐 Live Demo
 
-🚀 **Live Website:** https://willowy-violet-jtcvwhzz.edgeone.dev/
+🚀 **Live Website 1:** https://willowy-violet-jtcvwhzz.edgeone.dev/
 
-https://genuine-coral-skhngpvr.edgeone.dev/
+🚀 **Live Website 2:** https://genuine-coral-skhngpvr.edgeone.dev/
 
 > **Note:** The current deployment is a frontend demonstration. Real email reading and automatic sending require a backend (such as Node.js/Python) and integration with an email provider like Gmail API or Microsoft Graph.
 
