@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Auto-Responder — Inbox Simulator</title>
+<style>
+  :root{
+    --ink:#1c2b22; --paper:#f6f3ea; --line:#d8d2c0; --accent:#b5482a;
+    --accent-soft:#e8c9b8; --mute:#8a8270; --ai:#3a6b52; --tmpl:#8a7b3a;
+    --panel:#fffdf6;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Iowan Old Style','Georgia',serif;
+    display:flex; min-height:100vh;
+  }
+  .sidebar{
+    width:280px; flex-shrink:0; background:var(--ink); color:var(--paper);
+    padding:28px 0; display:flex; flex-direction:column;
+  }
+  .brand{padding:0 24px 24px; border-bottom:1px solid #38493f;}
+  .brand h1{font-size:18px; margin:0 0 4px; letter-spacing:.03em; font-weight:600;}
+  .brand p{margin:0; font-size:12px; color:#9fae9e; font-family:'Courier New',monospace;}
+  .status-block{padding:18px 24px; font-family:'Courier New',monospace; font-size:11px; color:#9fae9e; border-bottom:1px solid #38493f;}
+  .status-row{display:flex; justify-content:space-between; margin-bottom:6px;}
+  .status-row b{color:var(--paper); font-weight:600;}
+  .dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:#5fae7e; margin-right:6px;}
+  .inbox-list{flex:1; overflow-y:auto; padding-top:8px;}
+  .mail-item{
+    padding:14px 24px; cursor:pointer; border-left:3px solid transparent;
+    transition:background .15s;
+  }
+  .mail-item:hover{background:#27362c;}
+  .mail-item.active{background:#27362c; border-left-color:var(--accent);}
+  .mail-item .from{font-size:12.5px; font-weight:600; color:var(--paper); margin-bottom:3px;}
+  .mail-item .subj{font-size:12px; color:#aab8a8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mail-item .badge{
+    display:inline-block; font-family:'Courier New',monospace; font-size:9px;
+    padding:1px 6px; border-radius:2px; margin-top:5px; letter-spacing:.04em;
+  }
+  .badge.unread{background:var(--accent); color:#fff;}
+  .badge.drafted{background:#38493f; color:#9fae9e;}
+
+  .main{flex:1; padding:36px 48px; max-width:760px;}
+  .eyebrow{font-family:'Courier New',monospace; font-size:11px; letter-spacing:.08em; color:var(--mute); margin-bottom:6px; text-transform:uppercase;}
+  h2.subject{font-size:26px; margin:0 0 18px; font-weight:600; line-height:1.25;}
+  .meta{font-size:13px; color:var(--mute); margin-bottom:24px; padding-bottom:18px; border-bottom:1px solid var(--line);}
+  .meta b{color:var(--ink);}
+  .body-text{font-size:15.5px; line-height:1.7; color:#33402f; margin-bottom:30px; white-space:pre-wrap;}
+
+  .generate-btn{
+    background:var(--accent); color:#fff; border:none; padding:12px 22px;
+    font-family:'Courier New',monospace; font-size:12px; letter-spacing:.05em;
+    cursor:pointer; border-radius:2px; text-transform:uppercase;
+  }
+  .generate-btn:hover{background:#9a3c22;}
+  .generate-btn:disabled{background:var(--mute); cursor:default;}
+
+  .draft-panel{
+    margin-top:28px; background:var(--panel); border:1px solid var(--line);
+    border-radius:3px; overflow:hidden; display:none;
+  }
+  .draft-panel.show{display:block;}
+  .draft-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 18px; background:#efe9d8; border-bottom:1px solid var(--line);
+  }
+  .draft-head .label{font-family:'Courier New',monospace; font-size:11px; letter-spacing:.05em; color:var(--mute); text-transform:uppercase;}
+  .source-tag{
+    font-family:'Courier New',monospace; font-size:10px; padding:2px 8px;
+    border-radius:10px; letter-spacing:.04em;
+  }
+  .source-tag.ai{background:#dcebe2; color:var(--ai);}
+  .source-tag.template{background:#f1e7c6; color:var(--tmpl);}
+  textarea{
+    width:100%; min-height:150px; border:none; padding:18px; font-family:inherit;
+    font-size:14.5px; line-height:1.6; color:var(--ink); background:var(--panel);
+    resize:vertical; outline:none;
+  }
+  .draft-actions{
+    padding:12px 18px; display:flex; gap:10px; border-top:1px solid var(--line);
+  }
+  .btn{
+    font-family:'Courier New',monospace; font-size:11px; letter-spacing:.04em;
+    padding:9px 16px; border-radius:2px; cursor:pointer; text-transform:uppercase;
+    border:1px solid var(--ink); background:transparent; color:var(--ink);
+  }
+  .btn.send{background:var(--ai); border-color:var(--ai); color:#fff;}
+  .btn.send:hover{background:#2c5640;}
+  .btn.discard{color:var(--accent); border-color:var(--accent-soft);}
+  .btn.discard:hover{background:#fbeae3;}
+  .note{font-size:11px; color:var(--mute); margin-top:10px; font-family:'Courier New',monospace;}
+  .empty{color:var(--mute); font-style:italic; margin-top:60px;}
+  .sent-flag{
+    margin-top:14px; font-family:'Courier New',monospace; font-size:11px; color:var(--ai);
+    display:none;
+  }
+  .sent-flag.show{display:block;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">
+    <h1>Auto-Responder</h1>
+    <p>gmail · drafts-only mode</p>
+  </div>
+  <div class="status-block">
+    <div class="status-row"><span><span class="dot"></span>account</span><b>support@acme.co</b></div>
+    <div class="status-row"><span>label</span><b>INBOX</b></div>
+    <div class="status-row"><span>reply mode</span><b>AI + fallback</b></div>
+    <div class="status-row"><span>send mode</span><b>draft only</b></div>
+  </div>
+  <div class="inbox-list" id="inboxList"></div>
+</div>
+
+<div class="main" id="mainPanel">
+  <div class="empty">Select an email from the inbox to begin.</div>
+</div>
+
+<script>
+const EMAILS = [
+  {
+    id:1, from:"Priya Nair <priya.nair@example.com>",
+    subject:"Where is my order?? It's been a week",
+    body:"Hi, I ordered a pair of running shoes (order #4471) eight days ago and the tracking page hasn't updated since Tuesday. Can you tell me what's going on? I need them before Saturday for a race.",
+    read:false, drafted:false
+  },
+  {
+    id:2, from:"Marcus Webb <m.webb@example.com>",
+    subject:"App keeps crashing on checkout",
+    body:"Every time I try to check out on the iOS app it freezes and closes. I've tried reinstalling twice. This is really frustrating, can someone help?",
+    read:false, drafted:false
+  },
+  {
+    id:3, from:"Helena Cruz <helena.cruz@example.com>",
+    subject:"Requesting a refund for damaged item",
+    body:"The ceramic mug I ordered arrived cracked in two places. I'd like a refund rather than a replacement, please. Order #5820.",
+    read:false, drafted:false
+  },
+  {
+    id:4, from:"Tom Okafor <tom.okafor@example.com>",
+    subject:"Just wanted to say thanks!",
+    body:"Your support team helped me sort out a billing mixup last week and I really appreciated how quickly it was handled. Great service all around.",
+    read:false, drafted:false
+  },
+  {
+    id:5, from:"Grace Lindqvist <grace.l@example.com>",
+    subject:"Please cancel my subscription",
+    body:"I'd like to cancel my monthly subscription effective immediately. Please confirm once this is done.",
+    read:false, drafted:false
+  }
+];
+
+const TEMPLATES = [
+  { keywords:["refund","money back"], reply:"Thank you for reaching out about a refund. We've received your request and our billing team will review your order and respond within 1-2 business days with next steps." },
+  { keywords:["order status","where is my order","tracking","shipment","shipped"], reply:"Thanks for checking in on your order! We're looking into the current status and will follow up shortly with tracking details." },
+  { keywords:["not working","crash","bug","error","broken","issue","freeze"], reply:"Sorry to hear you're running into trouble. We've logged your issue and our technical team will investigate and get back to you as soon as possible." },
+  { keywords:["cancel","cancellation","unsubscribe"], reply:"We've received your cancellation request. Our team will process this and confirm once it's complete." },
+  { keywords:["invoice","billing","charge","payment failed"], reply:"Thanks for your message regarding billing. Our finance team will review your account and respond with the details you need." },
+  { keywords:["thank you","great service","love it","amazing"], reply:"Thank you so much for the kind words! We really appreciate you taking the time to share this with us." },
+];
+const GENERIC = "Thank you for contacting us. We've received your message and a member of our team will get back to you shortly.";
+const BUSINESS_NAME = "Acme Co. Support Team";
+
+let activeId = null;
+
+function templateReply(subject, body){
+  const text = (subject + " " + body).toLowerCase();
+  for(const t of TEMPLATES){
+    if(t.keywords.some(k => text.includes(k))) return t.reply;
+  }
+  return GENERIC;
+}
+
+// Simulated "AI" pass — in the real project this calls Claude.
+// Here we lightly rephrase the template result to stand in for an AI draft,
+// so the demo can run fully client-side with no API key.
+function aiReply(subject, body){
+  const base = templateReply(subject, body);
+  const opener = "Hi there,\n\n";
+  const closer = `\n\nBest regards,\n${BUSINESS_NAME}`;
+  return opener + base.replace("Thank you for contacting us. ", "") + closer;
+}
+
+function renderInbox(){
+  const list = document.getElementById('inboxList');
+  list.innerHTML = '';
+  EMAILS.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'mail-item' + (e.id === activeId ? ' active' : '');
+    div.onclick = () => selectEmail(e.id);
+    div.innerHTML = `
+      <div class="from">${e.from.split('<')[0].trim()}</div>
+      <div class="subj">${e.subject}</div>
+      <span class="badge ${e.drafted ? 'drafted' : 'unread'}">${e.drafted ? 'drafted' : 'unread'}</span>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function selectEmail(id){
+  activeId = id;
+  EMAILS.find(e => e.id === id).read = true;
+  renderInbox();
+  renderMain();
+}
+
+function renderMain(){
+  const e = EMAILS.find(x => x.id === activeId);
+  const panel = document.getElementById('mainPanel');
+  if(!e){ panel.innerHTML = '<div class="empty">Select an email from the inbox to begin.</div>'; return; }
+
+  panel.innerHTML = `
+    <div class="eyebrow">Incoming · ${e.drafted ? 'reply drafted' : 'awaiting reply'}</div>
+    <h2 class="subject">${e.subject}</h2>
+    <div class="meta">From <b>${e.from}</b></div>
+    <div class="body-text">${e.body}</div>
+    <button class="generate-btn" id="genBtn" ${e.drafted ? 'disabled' : ''}>
+      ${e.drafted ? 'Draft already created' : 'Generate draft reply'}
+    </button>
+    <div class="draft-panel ${e.drafted ? 'show' : ''}" id="draftPanel">
+      <div class="draft-head">
+        <span class="label">Draft reply</span>
+        <span class="source-tag" id="sourceTag"></span>
+      </div>
+      <textarea id="draftText"></textarea>
+      <div class="draft-actions">
+        <button class="btn send" id="sendBtn">Mark as sent</button>
+        <button class="btn discard" id="discardBtn">Discard draft</button>
+      </div>
+    </div>
+    <div class="sent-flag" id="sentFlag">✓ Sent — this draft has been delivered.</div>
+    <div class="note">Demo note: real version drafts in Gmail and never auto-sends; this simulator stands in for that review step.</div>
+  `;
+
+  if(e.drafted){
+    document.getElementById('draftText').value = e.draftBody;
+    setSourceTag(e.draftSource);
+  }
+
+  document.getElementById('genBtn').onclick = () => generateDraft(e);
+  if(e.drafted){
+    document.getElementById('sendBtn').onclick = () => markSent(e);
+    document.getElementById('discardBtn').onclick = () => discardDraft(e);
+  }
+}
+
+function setSourceTag(source){
+  const tag = document.getElementById('sourceTag');
+  tag.textContent = source === 'ai' ? 'AI-GENERATED' : 'TEMPLATE FALLBACK';
+  tag.className = 'source-tag ' + (source === 'ai' ? 'ai' : 'template');
+}
+
+function generateDraft(e){
+  const btn = document.getElementById('genBtn');
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    // Simulate AI succeeding most of the time, falling back occasionally —
+    // mirrors ai_responder.py's try-AI-then-fallback logic.
+    const useAI = Math.random() > 0.15;
+    const reply = useAI ? aiReply(e.subject, e.body) : (templateReply(e.subject, e.body) + `\n\nBest regards,\n${BUSINESS_NAME}`);
+    e.drafted = true;
+    e.draftBody = reply;
+    e.draftSource = useAI ? 'ai' : 'template';
+    renderInbox();
+    renderMain();
+  }, 700);
+}
+
+function markSent(e){
+  document.getElementById('sentFlag').classList.add('show');
+  document.querySelector('.draft-actions').style.opacity = '0.4';
+  document.querySelector('.draft-actions').style.pointerEvents = 'none';
+}
+
+function discardDraft(e){
+  e.drafted = false;
+  e.draftBody = null;
+  e.draftSource = null;
+  renderInbox();
+  renderMain();
+}
+
+renderInbox();
+</script>
+</body>
+</html>
