@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Automated Email Response System - 3D Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #05050a;
+            color: #fff;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Futuristic Glassmorphism UI overlay */
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to 3D scene */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px;
+        }
+
+        .interactive {
+            pointer-events: auto; /* Re-enable pointer events for buttons/cards */
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 25, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 20px 40px;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            width: 100%;
+        }
+
+        .logo-area h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, #00ffcc, #0077ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-area p {
+            font-size: 12px;
+            color: #8a8a9e;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            margin-top: auto;
+        }
+
+        .control-panel {
+            background: rgba(10, 10, 25, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 119, 255, 0.2);
+            padding: 25px;
+            border-radius: 16px;
+            width: 350px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .control-panel h3 {
+            color: #00ffcc;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #0077ff 0%, #00ffcc 100%);
+            border: none;
+            padding: 14px;
+            color: white;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 204, 0.5);
+        }
+
+        .log-box {
+            background: rgba(0,0,0,0.4);
+            border-radius: 8px;
+            padding: 12px;
+            height: 150px;
+            overflow-y: auto;
+            margin-top: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            color: #adadd6;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .log-success { color: #00ffcc; }
+        .log-info { color: #0077ff; }
+
+        .stats-panel {
+            background: rgba(10, 10, 25, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 119, 255, 0.2);
+            padding: 25px;
+            border-radius: 16px;
+            width: 320px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-label {
+            color: #8a8a9e;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 119, 255, 0.5);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 204, 0.3);
+            border-radius: 3px;
+        }
+    </style>
+
+    <!-- Include Three.js, OrbitControls, and GSAP for animations via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="ui-overlay">
+        <header class="interactive">
+            <div class="logo-area">
+                <h1>NEXUS AI</h1>
+                <p>Automated Email Response Neural Mesh</p>
+            </div>
+            <div style="text-align: right;">
+                <span style="color: #00ffcc; font-weight: bold; font-size: 14px;">● SYSTEM ONLINE</span>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <!-- Left Controls -->
+            <div class="control-panel interactive">
+                <h3>Automation Engine</h3>
+                <button class="btn" id="trigger-btn">Simulate Incoming Email</button>
+                <div class="log-box" id="log-box">
+                    <div class="log-entry log-success">System initialized successfully.</div>
+                    <div class="log-entry log-info">Awaiting incoming data stream...</div>
+                </div>
+            </div>
+
+            <!-- Right Stats -->
+            <div class="stats-panel interactive">
+                <h3>Live Network Metrics</h3>
+                <div style="margin-top: 15px;">
+                    <div class="stat-item">
+                        <span class="stat-label">Processed Today</span>
+                        <span class="stat-value" id="count-processed">1,482</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">AI Accuracy Rating</span>
+                        <span class="stat-value" style="color: #00ffcc;">99.4%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Avg Response Time</span>
+                        <span class="stat-value">0.8s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 3D Scene Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x05050a, 0.015);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 15);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Don't go under floor
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0x111122);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.PointLight(0x0077ff, 2, 30);
+        mainLight.position.set(0, 4, 0);
+        scene.add(mainLight);
+
+        const floorLight = new THREE.DirectionalLight(0x00ffcc, 0.6);
+        floorLight.position.set(0, 10, 0);
+        scene.add(floorLight);
+
+        // --- 3D Objects Construction ---
+
+        // 1. Digital Floor Grid
+        const gridHelper = new THREE.GridHelper(60, 60, 0x00ffcc, 0x112233);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
+
+        // 2. Central Neural Core (AI Module)
+        const coreGroup = new THREE.Group();
+        scene.add(coreGroup);
+
+        // Inner glowing sphere
+        const coreGeo = new THREE.IcosahedronGeometry(2, 1);
+        const coreMat = new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            wireframe: true,
+            emissive: 0x004433,
+            shininess: 100
+        });
+        const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+        coreGroup.add(coreMesh);
+
+        // Outer rings
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x0077ff, side: THREE.DoubleSide, wireframe: true });
+        
+        const ring1 = new THREE.Mesh(new THREE.RingGeometry(2.8, 3, 30), ringMat);
+        ring1.rotation.x = Math.PI / 2;
+        coreGroup.add(ring1);
+
+        const ring2 = new THREE.Mesh(new THREE.RingGeometry(3.2, 3.3, 30), ringMat);
+        ring2.rotation.y = Math.PI / 4;
+        coreGroup.add(ring2);
+
+        // 3. Floating Datastream Particles (Background Environment)
+        const particleCount = 200;
+        const particleGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+
+        for(let i=0; i<particleCount*3; i+=3) {
+            positions[i] = (Math.random() - 0.5) * 40;
+            positions[i+1] = Math.random() * 20 - 2;
+            positions[i+2] = (Math.random() - 0.5) * 40;
+        }
+
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particleMat = new THREE.PointsMaterial({
+            color: 0x0077ff,
+            size: 0.15,
+            transparent: true,
+            opacity: 0.6
+        });
+        const particleSystem = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleSystem);
+
+
+        // --- Simulation & Animations Logic ---
+
+        const logBox = document.getElementById('log-box');
+        const countProcessedElem = document.getElementById('count-processed');
+        let processedCount = 1482;
+
+        function addLog(text, type) {
+            const entry = document.createElement('div');
+            entry.classList.add('log-entry');
+            if(type) entry.classList.add(`log-${type}`);
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Trigger AI automation flow animation
+        document.getElementById('trigger-btn').addEventListener('click', () => {
+            addLog("📥 Incoming email detected from client...", "info");
+
+            // Create Visual "Incoming Email" Data Packet
+            const packetGeo = new THREE.SphereGeometry(0.25, 8, 8);
+            const packetMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+            const packet = new THREE.Mesh(packetGeo, packetMat);
+            
+            // Start from far away, move toward the core
+            packet.position.set(-15, 6, -10);
+            scene.add(packet);
+
+            // Timeline for the processing chain reaction
+            const tl = gsap.timeline();
+
+            // 1. Move packet into AI Core
+            tl.to(packet.position, {
+                x: 0, y: 0, z: 0,
+                duration: 1.2,
+                ease: "power2.in",
+                onComplete: () => {
+                    scene.remove(packet);
+                    addLog("🧠 Analyzing content with NLP...", "info");
+                    
+                    // Flash Core Color to indicate work
+                    gsap.to(coreMat.color, { r: 1, g: 0, b: 0.5, duration: 0.2 });
+                    gsap.to(coreMesh.scale, { x: 1.4, y: 1.4, z: 1.4, duration: 0.2, yoyo: true, repeat: 1 });
+                }
+            });
+
+            // 2. AI works, generates response
+            tl.to(coreMat.color, {
+                r: 0, g: 1, b: 0.8,
+                duration: 0.6,
+                delay: 0.4,
+                onComplete: () => {
+                    addLog("🤖 Reply generated: 'Inquiry Resolved'.", "success");
+                    addLog("📤 Dispatching automated email reply...", "info");
+                }
+            });
+
+            // 3. Shoot out Reply Packet
+            tl.to({}, {
+                duration: 0.1,
+                onComplete: () => {
+                    const replyMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+                    const replyPacket = new THREE.Mesh(packetGeo, replyMat);
+                    replyPacket.position.set(0, 0, 0);
+                    scene.add(replyPacket);
+
+                    gsap.to(replyPacket.position, {
+                        x: 15, y: -1, z: 12,
+                        duration: 1.0,
+                        ease: "power2.out",
+                        onComplete: () => {
+                            scene.remove(replyPacket);
+                            addLog("✅ Response delivered successfully!", "success");
+                            
+                            // Increment UI counter smoothly
+                            processedCount++;
+                            countProcessedElem.innerText = processedCount.toLocaleString();
+                        }
+                    });
+                }
+            });
+        });
+
+        // --- Main Render Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            // Passive asset rotations
+            coreMesh.rotation.y = elapsedTime * 0.4;
+            coreMesh.rotation.x = elapsedTime * 0.2;
+            
+            ring1.rotation.z = elapsedTime * 0.2;
+            ring2.rotation.z = -elapsedTime * 0.3;
+
+            // Slowly drift environment particles
+            particleSystem.rotation.y = elapsedTime * 0.02;
+
+            // Subtle core hovering floating effect
+            coreGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.3;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // --- Handle Window Resizing ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
